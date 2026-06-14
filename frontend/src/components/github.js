@@ -1,4 +1,5 @@
 import { fetchJson } from '../api/client.js'
+import { escapeHtml } from '../utils/escape.js'
 
 export async function renderGitHub(container, statusEl) {
   try {
@@ -11,10 +12,10 @@ export async function renderGitHub(container, statusEl) {
       data.prs.slice(0, 8).forEach(pr => {
         container.innerHTML += `
           <div class="pr-item">
-            <div class="item-title">${pr.title}</div>
+            <div class="item-title">${escapeHtml(pr.title)}</div>
             <div class="item-meta">
-              <span class="tag ${stateTag(pr.state)}">${pr.state}</span>
-              ${pr.repo} · ${pr.author}
+              <span class="tag ${stateTag(pr.state)}">${escapeHtml(pr.state)}</span>
+              ${escapeHtml(pr.repo)} · ${escapeHtml(pr.author)}
             </div>
           </div>`
       })
@@ -26,10 +27,10 @@ export async function renderGitHub(container, statusEl) {
         const cls = wf.conclusion === 'success' ? 'green' : wf.conclusion === 'failure' ? 'red' : 'yellow'
         container.innerHTML += `
           <div class="pr-item">
-            <div class="item-title">${wf.name}</div>
+            <div class="item-title">${escapeHtml(wf.name)}</div>
             <div class="item-meta">
-              <span class="tag ${cls}">${wf.conclusion || 'running'}</span>
-              ${wf.branch} · ${wf.actor}
+              <span class="tag ${cls}">${escapeHtml(wf.conclusion || 'running')}</span>
+              ${escapeHtml(wf.branch)} · ${escapeHtml(wf.actor)}
             </div>
           </div>`
       })
@@ -39,7 +40,7 @@ export async function renderGitHub(container, statusEl) {
       container.innerHTML = `<p class="empty-state">No activity</p>`
     }
   } catch (err) {
-    container.innerHTML = `<p class="error-state">Failed to load: ${err.message}</p>`
+    container.innerHTML = `<p class="error-state">Failed to load: ${escapeHtml(err.message)}</p>`
     setStatus(statusEl, 'error')
   }
 }

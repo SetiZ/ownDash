@@ -1,5 +1,5 @@
 const CACHE = 'owndash-v1'
-const ASSETS = ['/', '/src/style.css', '/src/main.js', '/manifest.json']
+const ASSETS = ['/', '/manifest.json']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

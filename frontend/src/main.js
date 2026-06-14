@@ -5,7 +5,7 @@ import { renderWeather } from './components/weather.js'
 import { renderTimezones } from './components/timezone.js'
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/src/sw.js')
+  navigator.serviceWorker.register('/sw.js')
 }
 
 function updateTimestamp() {
