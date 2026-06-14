@@ -1,26 +1,27 @@
-name: opencode-review
+name: opencode
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
 
 jobs:
-  review:
+  opencode:
+    if: contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write
       pull-requests: write
-      issues: read
+      issues: write
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-
       - uses: anomalyco/opencode/github@latest
         env:
           ZEN_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.5-free
-          agent: review
           use_github_token: true
