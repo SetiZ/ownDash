@@ -24,8 +24,9 @@ npm run dev            # starts frontend (5173) + backend (3001)
 | `PLANE_API_KEY` | No | Plane.so API key |
 | `PLANE_WORKSPACE` | No | Plane.so workspace slug |
 | `PLANE_EMAIL` | No | Plane.so account email |
+| `K8S_CONTEXTS` | No | Comma-separated kubeconfig contexts to watch (omit for default) |
 
-K8s data comes from your local `~/.kube/config` (or in-cluster config when deployed).
+K8s data comes from your local `~/.kube/config` (or in-cluster config when deployed). Mount into Docker: `-v ~/.kube/config:/root/.kube/config`.
 
 ## Deploy
 
