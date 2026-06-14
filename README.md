@@ -36,7 +36,10 @@ docker run -p 3001:3001 --env-file .env owndash
 
 ## PR review
 
-This repo uses opencode for automated code review on every PR. Project conventions are in `GUIDELINES.md`. See `opencode.json` and `.github/workflows/review.yml`.
+This repo uses opencode for automated code review on every PR. Project conventions are in `GUIDELINES.md`. See `opencode.json`.
+
+- `.github/workflows/review.yml` — auto-review on every PR
+- `.github/workflows/opencode.yml` — slash commands: comment `/opencode <task>` on any PR or issue to have opencode execute it
 
 ## License
 
