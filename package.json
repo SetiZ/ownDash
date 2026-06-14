@@ -1,0 +1,8 @@
+{
+  "name": "owndash",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --prefix frontend && npm run build --prefix backend"
+  }
+}
