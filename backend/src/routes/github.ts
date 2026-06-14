@@ -25,7 +25,7 @@ app.get('/', async (c) => {
     }
 
     const [prRes, wfRes] = await Promise.all([
-      fetch(`https://api.github.com/search/issues?q=${encodeURIComponent(repos.map(r => `repo:${r}`).join(' ') + ' type:pr state:open')}`, { headers }),
+      fetch(`https://api.github.com/search/issues?q=${encodeURIComponent(repos.map(r => `repo:${r}`).join(' ') + ' type:pr state:open')}&sort=updated&order=desc`, { headers }),
       fetch(`https://api.github.com/search/commits?q=${encodeURIComponent(repos.map(r => `repo:${r}`).join(' '))}&sort=committer-date&per_page=10`, { headers }),
     ])
 
