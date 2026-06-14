@@ -1,4 +1,5 @@
 import { fetchJson } from '../api/client.js'
+import { escapeHtml } from '../utils/escape.js'
 
 export async function renderPlane(container, statusEl) {
   try {
@@ -11,10 +12,10 @@ export async function renderPlane(container, statusEl) {
       data.issues.slice(0, 10).forEach(issue => {
         container.innerHTML += `
           <div class="issue-item">
-            <div class="item-title">${issue.title}</div>
+            <div class="item-title">${escapeHtml(issue.title)}</div>
             <div class="item-meta">
-              <span class="tag ${stateColor(issue.state)}">${issue.state}</span>
-              ${issue.project} · ${issue.priority || 'no priority'}
+              <span class="tag ${stateColor(issue.state)}">${escapeHtml(issue.state)}</span>
+              ${escapeHtml(issue.project)} · ${escapeHtml(issue.priority || 'no priority')}
             </div>
           </div>`
       })
@@ -24,7 +25,7 @@ export async function renderPlane(container, statusEl) {
       container.innerHTML = `<p class="empty-state">No open issues assigned to you</p>`
     }
   } catch (err) {
-    container.innerHTML = `<p class="error-state">Failed to load: ${err.message}</p>`
+    container.innerHTML = `<p class="error-state">Failed to load: ${escapeHtml(err.message)}</p>`
     setStatus(statusEl, 'error')
   }
 }

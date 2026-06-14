@@ -20,4 +20,4 @@ COPY --from=backend-build /app/backend/dist ./backend/dist
 COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
 EXPOSE 3001
 ENV FRONTEND_DIST=/app/frontend/dist
-CMD ["node", "backend/index.js"]
+CMD ["node", "backend/dist/index.js"]

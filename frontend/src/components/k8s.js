@@ -1,4 +1,5 @@
 import { fetchJson } from '../api/client.js'
+import { escapeHtml } from '../utils/escape.js'
 
 export async function renderK8s(container, statusEl) {
   try {
@@ -12,10 +13,10 @@ export async function renderK8s(container, statusEl) {
         const cls = pod.status === 'Running' ? 'green' : pod.status === 'Pending' ? 'yellow' : 'red'
         container.innerHTML += `
           <div class="pod-item">
-            <div class="item-title">${pod.name}</div>
+            <div class="item-title">${escapeHtml(pod.name)}</div>
             <div class="item-meta">
-              <span class="tag ${cls}">${pod.status}</span>
-              ${pod.namespace} · ${pod.restarts || 0} restarts
+              <span class="tag ${cls}">${escapeHtml(pod.status)}</span>
+              ${escapeHtml(pod.namespace)} · ${pod.restarts || 0} restarts
             </div>
           </div>`
       })
@@ -26,8 +27,8 @@ export async function renderK8s(container, statusEl) {
       data.events.slice(0, 5).forEach(ev => {
         container.innerHTML += `
           <div class="pr-item">
-            <div class="item-title">${ev.message}</div>
-            <div class="item-meta">${ev.namespace} · ${ev.count}x</div>
+            <div class="item-title">${escapeHtml(ev.message)}</div>
+            <div class="item-meta">${escapeHtml(ev.namespace)} · ${ev.count}x</div>
           </div>`
       })
     }
@@ -36,7 +37,7 @@ export async function renderK8s(container, statusEl) {
       container.innerHTML = `<p class="empty-state">No pods found or cluster unavailable</p>`
     }
   } catch (err) {
-    container.innerHTML = `<p class="error-state">Failed to load: ${err.message}</p>`
+    container.innerHTML = `<p class="error-state">Failed to load: ${escapeHtml(err.message)}</p>`
     setStatus(statusEl, 'error')
   }
 }
