@@ -1,10 +1,6 @@
 const ZONES = [
   { label: 'Local', tz: Intl.DateTimeFormat().resolvedOptions().timeZone },
-  { label: 'UTC', tz: 'UTC' },
   { label: 'Paris', tz: 'Europe/Paris' },
-  { label: 'NY', tz: 'America/New_York' },
-  { label: 'SF', tz: 'America/Los_Angeles' },
-  { label: 'Tokyo', tz: 'Asia/Tokyo' },
 ]
 
 export function renderTimezones(container) {
