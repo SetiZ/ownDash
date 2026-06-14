@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>ownDash</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>ownDash</h1>
+    <div id="last-updated"></div>
+  </header>
+
+  <main>
+    <section id="status-bar" class="card status-bar">
+      <div id="status-github" class="status-chip">GitHub ...</div>
+      <div id="status-k8s" class="status-chip">Cluster ...</div>
+      <div id="status-plane" class="status-chip">Plane ...</div>
+    </section>
+
+    <section id="weather" class="card">
+      <h2>Weather</h2>
+      <div id="weather-content">Loading...</div>
+    </section>
+
+    <section id="timezones" class="card">
+      <h2>Timezones</h2>
+      <div id="timezone-content"></div>
+    </section>
+
+    <section id="github" class="card">
+      <h2>
+        GitHub
+        <span class="source-badge">PRs · CI · Commits</span>
+      </h2>
+      <div id="github-content" class="card-content">
+        <p class="loading">Loading...</p>
+      </div>
+    </section>
+
+    <section id="k8s" class="card">
+      <h2>
+        Kubernetes
+        <span class="source-badge">Pods · Events</span>
+      </h2>
+      <div id="k8s-content" class="card-content">
+        <p class="loading">Loading...</p>
+      </div>
+    </section>
+
+    <section id="plane" class="card">
+      <h2>
+        Plane.so
+        <span class="source-badge">Issues</span>
+      </h2>
+      <div id="plane-content" class="card-content">
+        <p class="loading">Loading...</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
