@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 
 const app = new Hono()
 
@@ -25,15 +25,15 @@ function parseContexts(raw: string | undefined): string[] {
 }
 
 function queryCluster(context: string) {
-  const prefix = context ? `kubectl --context ${context}` : 'kubectl'
+  const ctx = context ? ['--context', context] : ([] as string[])
 
-  const podJson = run(`${prefix} get pods --all-namespaces -o json`)
+  const podJson = run('kubectl', [...ctx, 'get', 'pods', '--all-namespaces', '-o', 'json'])
   if (!podJson) {
     return { name: context || 'default', status: 'error', podCount: 0, unhealthyCount: 0, pods: [], events: [], nodeCount: 0 }
   }
 
-  const eventsRaw = run(`${prefix} get events --all-namespaces -o json --field-selector type=Warning`)
-  const nodesRaw = run(`${prefix} get nodes -o json`)
+  const eventsRaw = run('kubectl', [...ctx, 'get', 'events', '--all-namespaces', '-o', 'json', '--field-selector', 'type=Warning'])
+  const nodesRaw = run('kubectl', [...ctx, 'get', 'nodes', '-o', 'json'])
 
   const podList = parseJson(podJson, { items: [] })
   const eventList = parseJson(eventsRaw, { items: [] })
@@ -68,9 +68,9 @@ function queryCluster(context: string) {
   }
 }
 
-function run(cmd: string): string | null {
+function run(cmd: string, args: string[]): string | null {
   try {
-    return execSync(cmd, { timeout: 10000, encoding: 'utf-8' })
+    return execFileSync(cmd, args, { timeout: 10000, encoding: 'utf-8' })
   } catch {
     return null
   }
