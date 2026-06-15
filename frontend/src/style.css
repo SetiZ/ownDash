@@ -21,7 +21,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
-  padding: 16px;
+  padding: 16px env(safe-area-inset-right, 16px) 16px env(safe-area-inset-left, 16px);
   max-width: 600px;
   margin: 0 auto;
   min-height: 100dvh;
@@ -62,6 +62,27 @@ header h1 {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.card.collapsible > h2 {
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.card.collapsible > h2::before {
+  content: '▾';
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.card.collapsible.collapsed > h2::before {
+  transform: rotate(-90deg);
+}
+
+.card.collapsible.collapsed > .card-content {
+  display: none;
 }
 
 .source-badge {
@@ -108,7 +129,7 @@ header h1 {
 }
 
 .pr-item, .issue-item, .pod-item {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--surface-2);
 }
 
@@ -119,6 +140,8 @@ header h1 {
 .item-title {
   font-weight: 500;
   margin-bottom: 2px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .item-meta {
@@ -128,8 +151,8 @@ header h1 {
 
 .tag {
   display: inline-block;
-  font-size: 0.65rem;
-  padding: 1px 6px;
+  font-size: 0.7rem;
+  padding: 2px 7px;
   border-radius: 4px;
   background: var(--surface-2);
   margin-right: 4px;
@@ -139,6 +162,8 @@ header h1 {
 .tag.yellow { background: color-mix(in srgb, var(--yellow) 20%, transparent); color: var(--yellow); }
 .tag.red { background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
 .tag.accent { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+
+.muted { color: var(--text-muted); font-size: 0.75rem; }
 
 #weather-content {
   display: flex;
@@ -182,6 +207,36 @@ header h1 {
   font-size: 1.1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.ns-header {
+  cursor: pointer;
+  user-select: none;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ns-header::before {
+  content: '▾';
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.ns.collapsed .ns-header::before {
+  transform: rotate(-90deg);
+}
+
+.ns.collapsed .ns-pods {
+  display: none;
+}
+
+.ns-pods {
+  margin-left: 12px;
 }
 
 .error-state {
