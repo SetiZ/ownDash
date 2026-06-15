@@ -35,3 +35,10 @@ async function refreshAll() {
 
 refreshAll()
 setInterval(refreshAll, 60_000)
+
+document.querySelector('main').addEventListener('click', e => {
+  const h2 = e.target.closest('.collapsible > h2')
+  if (h2) h2.closest('.collapsible').classList.toggle('collapsed')
+  const ns = e.target.closest('.ns-header')
+  if (ns) ns.closest('.ns').classList.toggle('collapsed')
+})

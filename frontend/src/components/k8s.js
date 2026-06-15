@@ -1,6 +1,23 @@
 import { fetchJson } from '../api/client.js'
 import { escapeHtml } from '../utils/escape.js'
 
+function parseImage(full) {
+  const parts = full.split('/')
+  const last = parts[parts.length - 1]
+  const colon = last.lastIndexOf(':')
+  if (colon === -1) return { name: last, tag: null }
+  return { name: last.slice(0, colon), tag: last.slice(colon + 1) }
+}
+
+function imageHtml(imageStr) {
+  if (!imageStr) return ''
+  return imageStr.split(', ').map(part => {
+    const { name, tag } = parseImage(part.trim())
+    if (!tag) return escapeHtml(name)
+    return `${escapeHtml(name)} · <span class="tag">${escapeHtml(tag)}</span>`
+  }).join(', ')
+}
+
 export async function renderK8s(container, statusEl) {
   try {
     const data = await fetchJson('/k8s')
@@ -11,9 +28,7 @@ export async function renderK8s(container, statusEl) {
         if (i > 0) container.innerHTML += `<hr style="margin:12px 0;border:none;border-top:1px solid var(--surface-2)">`
         renderCluster(container, cluster)
       })
-      const allOk = data.clusters.every(c => c.status === 'ok')
-      const anyErr = data.clusters.some(c => c.status === 'error')
-      setStatus(statusEl, anyErr ? 'error' : allOk ? 'ok' : 'warning')
+      setStatus(statusEl, data.status)
     } else {
       container.innerHTML = `<p class="empty-state">No pods found or cluster unavailable</p>`
       setStatus(statusEl, data.status || 'error')
@@ -31,16 +46,55 @@ function renderCluster(container, cluster) {
 
   if (cluster.pods?.length) {
     container.innerHTML += `<p style="margin-top:8px"><strong>Pods (${cluster.podCount} total):</strong></p>`
-    cluster.pods.slice(0, 10).forEach(pod => {
-      const cls = pod.status === 'Running' ? 'green' : pod.status === 'Pending' ? 'yellow' : 'red'
-      container.innerHTML += `
-        <div class="pod-item">
-          <div class="item-title">${escapeHtml(pod.name)}</div>
-          <div class="item-meta">
-            <span class="tag ${cls}">${escapeHtml(pod.status)}</span>
-            ${escapeHtml(pod.namespace)} · ${pod.restarts || 0} restarts
-          </div>
-        </div>`
+    const grouped = {}
+    cluster.pods.forEach(pod => {
+      (grouped[pod.namespace] ??= []).push(pod)
+    })
+    Object.entries(grouped).forEach(([ns, pods]) => {
+      let html = `<div class="ns collapsed">
+        <div class="ns-header">${escapeHtml(ns)} (${pods.length})</div>
+        <div class="ns-pods">`
+      pods.forEach(pod => {
+        const cls = pod.status === 'Running' ? 'green' : pod.status === 'Pending' ? 'yellow' : 'red'
+        html += `
+          <div class="pod-item">
+            <div class="item-title">${escapeHtml(pod.name)}</div>
+            <div class="item-meta">
+              <span class="tag ${cls}">${escapeHtml(pod.status)}</span>
+              ${pod.restarts || 0} restarts
+            </div>
+          </div>`
+      })
+      html += `</div></div>`
+      container.innerHTML += html
+    })
+  }
+
+  if (cluster.deployments?.length) {
+    container.innerHTML += `<p style="margin-top:8px"><strong>Deployments (${cluster.deployments.length}):</strong></p>`
+    const grouped = {}
+    cluster.deployments.forEach(d => {
+      (grouped[d.namespace] ??= []).push(d)
+    })
+    Object.entries(grouped).forEach(([ns, deps]) => {
+      let html = `<div class="ns collapsed">
+        <div class="ns-header">${escapeHtml(ns)} (${deps.length})</div>
+        <div class="ns-pods">`
+      deps.forEach(d => {
+        const updated = d.lastUpdated ? new Date(d.lastUpdated).toLocaleString() : ''
+        const parts = [
+          `<span class="tag ${d.ready < d.desired ? 'yellow' : 'green'}">${d.ready}/${d.desired} ready</span>`,
+        ]
+        if (d.image) parts.push(imageHtml(d.image))
+        if (updated) parts.push(`<span class="muted">${escapeHtml(updated)}</span>`)
+        html += `
+          <div class="pod-item">
+            <div class="item-title">${escapeHtml(d.name)}</div>
+            <div class="item-meta">${parts.join(' · ')}</div>
+          </div>`
+      })
+      html += `</div></div>`
+      container.innerHTML += html
     })
   }
 
@@ -55,8 +109,8 @@ function renderCluster(container, cluster) {
     })
   }
 
-  if (!cluster.pods?.length) {
-    container.innerHTML += `<p class="empty-state" style="margin-top:4px">No pods found</p>`
+  if (!cluster.pods?.length && !cluster.deployments?.length) {
+    container.innerHTML += `<p class="empty-state" style="margin-top:4px">No resources found</p>`
   }
 }
 
