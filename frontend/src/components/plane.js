@@ -1,9 +1,9 @@
 import { fetchJson } from '../api/client.js'
 import { escapeHtml } from '../utils/escape.js'
 
-export async function renderPlane(container, statusEl) {
+export async function renderPlane(container, statusEl, { signal } = {}) {
   try {
-    const data = await fetchJson('/plane')
+    const data = await fetchJson('/plane', { signal })
     setStatus(statusEl, data.status)
     container.innerHTML = ''
 

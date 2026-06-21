@@ -17,11 +17,16 @@ renderWeather(document.getElementById('weather-content'))
 renderTimezones(document.getElementById('timezone-content'))
 updateTimestamp()
 
+let controller = null
+
 function loadTab(name) {
+  if (controller) controller.abort()
+  controller = new AbortController()
+
   const statusEl = document.getElementById('status-' + name)
   const contentEl = document.getElementById('tab-' + name)
   const fns = { github: renderGitHub, k8s: renderK8s, plane: renderPlane }
-  fns[name](contentEl, statusEl)
+  fns[name](contentEl, statusEl, { signal: controller.signal })
 }
 
 function activateTab(name) {

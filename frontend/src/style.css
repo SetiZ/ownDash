@@ -64,27 +64,6 @@ header h1 {
   flex-wrap: wrap;
 }
 
-.card.collapsible > h2 {
-  cursor: pointer;
-  user-select: none;
-  padding: 4px 0;
-}
-
-.card.collapsible > h2::before {
-  content: '▾';
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  transition: transform 0.15s;
-}
-
-.card.collapsible.collapsed > h2::before {
-  transform: rotate(-90deg);
-}
-
-.card.collapsible.collapsed > .card-content {
-  display: none;
-}
-
 .source-badge {
   font-size: 0.65rem;
   font-weight: 400;

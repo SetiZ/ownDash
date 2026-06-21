@@ -1,7 +1,7 @@
 const BASE = '/api'
 
-export async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`)
+export async function fetchJson(path, { signal } = {}) {
+  const res = await fetch(`${BASE}${path}`, { signal })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
 }
