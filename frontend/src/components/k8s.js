@@ -4,6 +4,8 @@ import { escapeHtml } from '../utils/escape.js'
 function parseImage(full) {
   const parts = full.split('/')
   const last = parts[parts.length - 1]
+  const at = last.lastIndexOf('@')
+  if (at !== -1) return { name: last.slice(0, at), tag: last.slice(at + 1) }
   const colon = last.lastIndexOf(':')
   if (colon === -1) return { name: last, tag: null }
   return { name: last.slice(0, colon), tag: last.slice(colon + 1) }
@@ -81,7 +83,7 @@ function renderCluster(container, cluster) {
         <div class="ns-header">${escapeHtml(ns)} (${deps.length})</div>
         <div class="ns-pods">`
       deps.forEach(d => {
-        const updated = d.lastUpdated ? new Date(d.lastUpdated).toLocaleString() : ''
+        const updated = d.lastUpdated ? new Date(d.lastUpdated).toLocaleString(undefined, { timeZone: 'UTC', timeZoneName: 'short' }) : ''
         const parts = [
           `<span class="tag ${d.ready < d.desired ? 'yellow' : 'green'}">${d.ready}/${d.desired} ready</span>`,
         ]
