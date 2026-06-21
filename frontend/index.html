@@ -33,14 +33,14 @@
     </section>
 
     <section id="data-tabs" class="card">
-      <div class="tab-bar">
-        <button class="tab-btn active" data-tab="github">GitHub</button>
-        <button class="tab-btn" data-tab="k8s">K8s</button>
-        <button class="tab-btn" data-tab="plane">Plane</button>
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" data-tab="github" role="tab" aria-selected="true" aria-controls="tab-github" id="tab-btn-github">GitHub</button>
+        <button class="tab-btn" data-tab="k8s" role="tab" aria-selected="false" aria-controls="tab-k8s" id="tab-btn-k8s">K8s</button>
+        <button class="tab-btn" data-tab="plane" role="tab" aria-selected="false" aria-controls="tab-plane" id="tab-btn-plane">Plane</button>
       </div>
-      <div id="tab-github" class="tab-content active"><p class="loading">Loading...</p></div>
-      <div id="tab-k8s" class="tab-content"><p class="loading">Loading...</p></div>
-      <div id="tab-plane" class="tab-content"><p class="loading">Loading...</p></div>
+      <div id="tab-github" class="tab-content active" role="tabpanel" aria-labelledby="tab-btn-github"><p class="loading">Loading...</p></div>
+      <div id="tab-k8s" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-k8s"><p class="loading">Loading...</p></div>
+      <div id="tab-plane" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-plane"><p class="loading">Loading...</p></div>
     </section>
   </main>
 
