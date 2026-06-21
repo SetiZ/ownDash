@@ -103,7 +103,7 @@ function queryCluster(context: string, nsFilter: string[]) {
         ready: d.status?.readyReplicas || 0,
         available: d.status?.availableReplicas || 0,
         upToDate: d.status?.updatedReplicas || 0,
-        image: containers.map((c: any) => c.image).join(', '),
+        image: containers.slice(0, 3).map((c: any) => c.image).join(', ') + (containers.length > 3 ? ', ...' : ''),
         lastUpdated: lastRollout.get(d.metadata?.uid) || null,
       }
     })
