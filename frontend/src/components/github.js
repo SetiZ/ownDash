@@ -21,8 +21,9 @@ export async function renderGitHub(container, statusEl) {
             <div class="item-title">${escapeHtml(pr.title)}</div>
             <div class="item-meta">
               <span class="tag ${stateTag(pr.state)}">${escapeHtml(pr.state)}</span>
-              ${escapeHtml(pr.repo)} · ${escapeHtml(pr.author)} · <span class="muted">${formatTime(pr.updatedAt)}</span>
+              ${escapeHtml(pr.repo)}
             </div>
+            <div class="item-meta">${escapeHtml(pr.author)} · <span class="muted">${formatTime(pr.updatedAt)}</span></div>
           </div>`
       })
     }
