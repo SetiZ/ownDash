@@ -34,6 +34,41 @@ function formatMemory(mem) {
   return (num / 1024 / 1024 / 1024).toFixed(1) + ' Gi'
 }
 
+function formatResCpu(v) {
+  if (v.endsWith('m')) {
+    const m = parseInt(v, 10)
+    if (m < 1000) return v
+    return (m / 1000).toFixed(m % 1000 === 0 ? 0 : 1).replace(/\.0$/, '') + ' CPU'
+  }
+  return v + ' CPU'
+}
+
+function formatResMem(v) {
+  const num = parseInt(v, 10)
+  if (isNaN(num) || num === 0) return v
+  if (num >= 1024 * 1024 * 1024) {
+    const gi = num / (1024 * 1024 * 1024)
+    return (gi % 1 === 0 ? gi.toFixed(0) : gi.toFixed(1)) + ' Gi'
+  }
+  const mi = num / (1024 * 1024)
+  return (mi % 1 === 0 ? mi.toFixed(0) : mi.toFixed(1)) + ' Mi'
+}
+
+function formatResourceLine(req, lim) {
+  const reqParts = []
+  const limParts = []
+  if (req.cpu !== '0m') reqParts.push(formatResCpu(req.cpu))
+  if (req.memory !== '0') reqParts.push(formatResMem(req.memory))
+  if (lim.cpu !== '0m') limParts.push(formatResCpu(lim.cpu))
+  if (lim.memory !== '0') limParts.push(formatResMem(lim.memory))
+  const same = reqParts.join() === limParts.join()
+  if (same) return reqParts.join(' · ')
+  const parts = []
+  if (reqParts.length) parts.push('R: ' + reqParts.join(' · '))
+  if (limParts.length) parts.push('L: ' + limParts.join(' · '))
+  return parts.join('  ')
+}
+
 export async function renderK8s(container, statusEl) {
   try {
     const data = await fetchJson('/k8s')
@@ -75,6 +110,9 @@ function renderCluster(container, cluster) {
         const restartTag = pod.restarts > 0
           ? `<span class="tag ${pod.restarts > 5 ? 'red' : 'yellow'}">${pod.restarts} restarts</span>`
           : ''
+        const resLine = (pod.requests?.cpu !== '0m' || pod.requests?.memory !== '0' || pod.limits?.cpu !== '0m' || pod.limits?.memory !== '0')
+          ? `<div class="item-meta muted">${formatResourceLine(pod.requests, pod.limits)}</div>`
+          : ''
         html += `
           <div class="pod-item">
             <div class="item-title">${escapeHtml(pod.name)}</div>
@@ -82,6 +120,7 @@ function renderCluster(container, cluster) {
               <span class="tag ${cls}">${escapeHtml(pod.status)}</span>
               ${restartTag}
             </div>
+            ${resLine}
           </div>`
       })
       html += `</div></div>`
@@ -141,15 +180,24 @@ function renderCluster(container, cluster) {
   }
 
   if (cluster.nodes?.length) {
-    container.innerHTML += `<p style="margin-top:8px"><strong>Nodes (${cluster.nodes.length}):</strong></p>`
+    let html = `<div class="ns collapsed">
+      <div class="ns-header"><strong>Nodes (${cluster.nodes.length})</strong></div>
+      <div class="ns-pods">`
     cluster.nodes.forEach(n => {
       const parts = [escapeHtml(n.name), formatCpu(n.cpu), formatMemory(n.memory)]
       n.pressure.forEach(p => parts.push(`<span class="tag red">${escapeHtml(p)}</span>`))
-      container.innerHTML += `
-        <div class="pod-item">
-          <div class="item-meta">${parts.join(' · ')}</div>
-        </div>`
+      html += `<div class="pod-item">
+        <div class="item-meta">${parts.join(' · ')}</div>`
+      if (n.cpuUsage) {
+        html += `<div class="item-meta muted">CPU: ${formatCpu(n.cpuUsage)} / ${formatCpu(n.cpu)}</div>`
+      }
+      if (n.memUsage) {
+        html += `<div class="item-meta muted">Memory: ${formatMemory(n.memUsage)} / ${formatMemory(n.memory)}</div>`
+      }
+      html += `</div>`
     })
+    html += `</div></div>`
+    container.innerHTML += html
   }
 
   if (cluster.events?.length) {

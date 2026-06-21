@@ -15,6 +15,14 @@ interface K8sMeta {
 
 interface K8sContainer {
   image: string
+  resources?: {
+    requests?: { cpu?: string; memory?: string }
+    limits?: { cpu?: string; memory?: string }
+  }
+}
+
+interface K8sPodSpec {
+  containers?: K8sContainer[]
 }
 
 interface K8sPodStatus {
@@ -24,6 +32,7 @@ interface K8sPodStatus {
 
 interface K8sPod {
   metadata?: K8sMeta
+  spec?: K8sPodSpec
   status?: K8sPodStatus
 }
 
@@ -85,7 +94,7 @@ interface ClusterData {
   name: string
   podCount: number
   unhealthyCount: number
-  pods: { name: string; namespace: string; status: string; restarts: number }[]
+  pods: { name: string; namespace: string; status: string; restarts: number; requests: { cpu: string; memory: string }; limits: { cpu: string; memory: string } }[]
   deployments: {
     name: string
     namespace: string
@@ -105,7 +114,7 @@ interface ClusterData {
     ports: string
   }[]
   events: { message: string; namespace: string; count: number }[]
-  nodes: { name: string; cpu: string; memory: string; pressure: string[] }[]
+  nodes: { name: string; cpu: string; memory: string; pressure: string[]; cpuUsage: string; memUsage: string }[]
 }
 
 // ── Route ──────────────────────────────────────────────────────────────────
@@ -161,6 +170,36 @@ function sumRestarts(statuses: { restartCount: number }[] | undefined): number {
   return statuses.reduce((sum, s) => sum + (s.restartCount || 0), 0)
 }
 
+function parseCpu(s: string | undefined): number {
+  if (!s) return 0
+  if (s.endsWith('m')) return parseInt(s.slice(0, -1), 10)
+  return Math.round(parseFloat(s) * 1000)
+}
+
+function parseMemory(s: string | undefined): number {
+  if (!s) return 0
+  const num = parseFloat(s)
+  if (s.endsWith('Ki')) return num * 1024
+  if (s.endsWith('Mi')) return num * 1024 * 1024
+  if (s.endsWith('Gi')) return num * 1024 * 1024 * 1024
+  if (s.endsWith('Ti')) return num * 1024 * 1024 * 1024 * 1024
+  if (s.endsWith('k') || s.endsWith('K')) return num * 1000
+  if (s.endsWith('M')) return num * 1000 * 1000
+  if (s.endsWith('G')) return num * 1000 * 1000 * 1000
+  return num
+}
+
+function sumResources(containers: { resources?: { requests?: { cpu?: string; memory?: string }; limits?: { cpu?: string; memory?: string } } }[] | undefined, field: 'requests' | 'limits'): { cpu: string; memory: string } {
+  let cpu = 0
+  let mem = 0
+  for (const c of containers || []) {
+    const r = c.resources?.[field]
+    if (r?.cpu) cpu += parseCpu(r.cpu)
+    if (r?.memory) mem += parseMemory(r.memory)
+  }
+  return { cpu: cpu + 'm', memory: mem + '' }
+}
+
 function queryCluster(context: string, nsFilter: string[]): ClusterData & { status: string } {
   const filterNs = nsFilter.length > 0
     ? (ns: string) => nsFilter.includes(ns)
@@ -177,6 +216,7 @@ function queryCluster(context: string, nsFilter: string[]): ClusterData & { stat
   const svcRaw = run('kubectl', [...ctx, 'get', 'services', '--all-namespaces', '-o', 'json'])
   const eventsRaw = run('kubectl', [...ctx, 'get', 'events', '--all-namespaces', '-o', 'json', '--field-selector', 'type=Warning'])
   const nodesRaw = run('kubectl', [...ctx, 'get', 'nodes', '-o', 'json'])
+  const topRaw = run('kubectl', [...ctx, 'top', 'nodes', '-o', 'json'])
 
   const podList = parseJson<K8sList<K8sPod>>(podJson, { items: [] })
   const depList = parseJson<K8sList<K8sDeployment>>(depRaw, { items: [] })
@@ -184,18 +224,26 @@ function queryCluster(context: string, nsFilter: string[]): ClusterData & { stat
   const svcList = parseJson<K8sList<K8sService>>(svcRaw, { items: [] })
   const eventList = parseJson<K8sList<K8sEvent>>(eventsRaw, { items: [] })
   const nodeList = parseJson<K8sList<K8sNode>>(nodesRaw, { items: [] })
+  const topList = parseJson<{ items: { metadata: { name: string }; usage: { cpu: string; memory: string } }[] }>(topRaw, { items: [] })
 
   const nonTerminal = (podList.items || []).filter(
     p => p.status?.phase !== 'Succeeded' && p.status?.phase !== 'Failed'
   )
 
   const pods = nonTerminal
-    .map(p => ({
-      name: p.metadata?.name || 'unknown',
-      namespace: p.metadata?.namespace || 'default',
-      status: p.status?.phase || 'Unknown',
-      restarts: sumRestarts(p.status?.containerStatuses),
-    }))
+    .map(p => {
+      const containers = p.spec?.containers
+      const req = sumResources(containers, 'requests')
+      const lim = sumResources(containers, 'limits')
+      return {
+        name: p.metadata?.name || 'unknown',
+        namespace: p.metadata?.namespace || 'default',
+        status: p.status?.phase || 'Unknown',
+        restarts: sumRestarts(p.status?.containerStatuses),
+        requests: req,
+        limits: lim,
+      }
+    })
     .filter(p => filterNs(p.namespace))
 
   const warnings = (eventList.items || [])
@@ -239,15 +287,26 @@ function queryCluster(context: string, nsFilter: string[]): ClusterData & { stat
     }))
     .filter(s => filterNs(s.namespace))
 
+  const usageMap = new Map<string, { cpu: string; memory: string }>()
+  for (const item of topList.items || []) {
+    usageMap.set(item.metadata?.name || '', {
+      cpu: item.usage?.cpu || '0',
+      memory: item.usage?.memory || '0',
+    })
+  }
+
   const nodes = (nodeList.items || []).map(n => {
     const pressure = (n.status?.conditions || [])
       .filter(c => c.status === 'True' && ['DiskPressure', 'MemoryPressure', 'PIDPressure'].includes(c.type))
       .map(c => c.type)
+    const usage = usageMap.get(n.metadata?.name || '')
     return {
       name: n.metadata?.name || 'unknown',
       cpu: n.status?.capacity?.cpu || 'unknown',
       memory: n.status?.capacity?.memory || 'unknown',
       pressure,
+      cpuUsage: usage?.cpu || '',
+      memUsage: usage?.memory || '',
     }
   })
 
