@@ -41,6 +41,7 @@ app.get('/', async (c) => {
           conclusion: run.conclusion,
           actor: run.actor?.login || 'unknown',
           updatedAt: run.updated_at,
+          commitMessage: run.head_commit?.message || '',
         }))
       })
     )
