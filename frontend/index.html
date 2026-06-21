@@ -32,34 +32,15 @@
       <div id="timezone-content"></div>
     </section>
 
-    <section id="github" class="card collapsible">
-      <h2>
-        GitHub
-        <span class="source-badge">PRs · CI · Commits</span>
-      </h2>
-      <div id="github-content" class="card-content">
-        <p class="loading">Loading...</p>
+    <section id="data-tabs" class="card">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="github">GitHub</button>
+        <button class="tab-btn" data-tab="k8s">K8s</button>
+        <button class="tab-btn" data-tab="plane">Plane</button>
       </div>
-    </section>
-
-    <section id="k8s" class="card collapsible">
-      <h2>
-        Kubernetes
-        <span class="source-badge">Pods · Deployments · Services · Events</span>
-      </h2>
-      <div id="k8s-content" class="card-content">
-        <p class="loading">Loading...</p>
-      </div>
-    </section>
-
-    <section id="plane" class="card collapsible">
-      <h2>
-        Plane.so
-        <span class="source-badge">Issues</span>
-      </h2>
-      <div id="plane-content" class="card-content">
-        <p class="loading">Loading...</p>
-      </div>
+      <div id="tab-github" class="tab-content active"><p class="loading">Loading...</p></div>
+      <div id="tab-k8s" class="tab-content"><p class="loading">Loading...</p></div>
+      <div id="tab-plane" class="tab-content"><p class="loading">Loading...</p></div>
     </section>
   </main>
 
