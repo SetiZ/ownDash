@@ -60,12 +60,14 @@ function queryCluster(context: string, nsFilter: string[]) {
 
   const depRaw = run('kubectl', [...ctx, 'get', 'deployments', '--all-namespaces', '-o', 'json'])
   const rsRaw = run('kubectl', [...ctx, 'get', 'replicasets', '--all-namespaces', '-o', 'json'])
+  const svcRaw = run('kubectl', [...ctx, 'get', 'services', '--all-namespaces', '-o', 'json'])
   const eventsRaw = run('kubectl', [...ctx, 'get', 'events', '--all-namespaces', '-o', 'json', '--field-selector', 'type=Warning'])
   const nodesRaw = run('kubectl', [...ctx, 'get', 'nodes', '-o', 'json'])
 
   const podList = parseJson(podJson, { items: [] })
   const depList = parseJson(depRaw, { items: [] })
   const rsList = parseJson(rsRaw, { items: [] })
+  const svcList = parseJson(svcRaw, { items: [] })
   const eventList = parseJson(eventsRaw, { items: [] })
   const nodeList = parseJson(nodesRaw, { items: [] })
 
@@ -96,6 +98,9 @@ function queryCluster(context: string, nsFilter: string[]) {
   const deployments = (depList.items || [])
     .map((d: any) => {
       const containers = d.spec?.template?.spec?.containers || []
+      const stalled = (d.status?.conditions || []).some(
+        (c: any) => c.type === 'Progressing' && c.status === 'False' && c.reason === 'ProgressDeadlineExceeded'
+      )
       return {
         name: d.metadata?.name || 'unknown',
         namespace: d.metadata?.namespace || 'default',
@@ -105,9 +110,32 @@ function queryCluster(context: string, nsFilter: string[]) {
         upToDate: d.status?.updatedReplicas || 0,
         image: containers.slice(0, 3).map((c: any) => c.image).join(', ') + (containers.length > 3 ? ', ...' : ''),
         lastUpdated: lastRollout.get(d.metadata?.uid) || null,
+        stalled,
       }
     })
     .filter((d: any) => filterNs(d.namespace))
+
+  const services = (svcList.items || [])
+    .map((s: any) => ({
+      name: s.metadata?.name || 'unknown',
+      namespace: s.metadata?.namespace || 'default',
+      type: s.spec?.type || 'ClusterIP',
+      clusterIP: s.spec?.clusterIP || 'None',
+      ports: (s.spec?.ports || []).map((p: any) => `${p.port}/${p.protocol}`).join(', '),
+    }))
+    .filter((s: any) => filterNs(s.namespace))
+
+  const nodes = (nodeList.items || []).map((n: any) => {
+    const pressure = (n.status?.conditions || [])
+      .filter((c: any) => c.status === 'True' && ['DiskPressure', 'MemoryPressure', 'PIDPressure'].includes(c.type))
+      .map((c: any) => c.type)
+    return {
+      name: n.metadata?.name || 'unknown',
+      cpu: n.status?.capacity?.cpu || 'unknown',
+      memory: n.status?.capacity?.memory || 'unknown',
+      pressure,
+    }
+  })
 
   const unhealthy = pods.filter((p: any) => p.status !== 'Running').length
 
@@ -117,8 +145,9 @@ function queryCluster(context: string, nsFilter: string[]) {
     unhealthyCount: unhealthy,
     pods: pods.slice(0, 100),
     deployments,
+    services,
     events: warnings,
-    nodeCount: nodeList.items?.length || 0,
+    nodes,
   }
 }
 

@@ -20,6 +20,20 @@ function imageHtml(imageStr) {
   }).join(', ')
 }
 
+function formatCpu(cpu) {
+  if (cpu.endsWith('m')) return (parseInt(cpu) / 1000).toFixed(1) + ' CPU'
+  return parseInt(cpu) + ' CPU'
+}
+
+function formatMemory(mem) {
+  const num = parseInt(mem, 10)
+  if (isNaN(num)) return mem
+  if (mem.endsWith('Ki')) return (num / 1024 / 1024).toFixed(1) + ' Gi'
+  if (mem.endsWith('Mi')) return (num / 1024).toFixed(1) + ' Gi'
+  if (mem.endsWith('Gi')) return num.toFixed(1) + ' Gi'
+  return (num / 1024 / 1024 / 1024).toFixed(1) + ' Gi'
+}
+
 export async function renderK8s(container, statusEl) {
   try {
     const data = await fetchJson('/k8s')
@@ -58,12 +72,15 @@ function renderCluster(container, cluster) {
         <div class="ns-pods">`
       pods.forEach(pod => {
         const cls = pod.status === 'Running' ? 'green' : pod.status === 'Pending' ? 'yellow' : 'red'
+        const restartTag = pod.restarts > 0
+          ? `<span class="tag ${pod.restarts > 5 ? 'red' : 'yellow'}">${pod.restarts} restarts</span>`
+          : ''
         html += `
           <div class="pod-item">
             <div class="item-title">${escapeHtml(pod.name)}</div>
             <div class="item-meta">
               <span class="tag ${cls}">${escapeHtml(pod.status)}</span>
-              ${pod.restarts || 0} restarts
+              ${restartTag}
             </div>
           </div>`
       })
@@ -87,6 +104,7 @@ function renderCluster(container, cluster) {
         const parts = [
           `<span class="tag ${d.ready < d.desired ? 'yellow' : 'green'}">${d.ready}/${d.desired} ready</span>`,
         ]
+        if (d.stalled) parts.push(`<span class="tag red">Stalled</span>`)
         if (d.image) parts.push(imageHtml(d.image))
         if (updated) parts.push(`<span class="muted">${escapeHtml(updated)}</span>`)
         html += `
@@ -97,6 +115,40 @@ function renderCluster(container, cluster) {
       })
       html += `</div></div>`
       container.innerHTML += html
+    })
+  }
+
+  if (cluster.services?.length) {
+    container.innerHTML += `<p style="margin-top:8px"><strong>Services (${cluster.services.length}):</strong></p>`
+    const grouped = {}
+    cluster.services.forEach(s => {
+      (grouped[s.namespace] ??= []).push(s)
+    })
+    Object.entries(grouped).forEach(([ns, svcs]) => {
+      let html = `<div class="ns collapsed">
+        <div class="ns-header">${escapeHtml(ns)} (${svcs.length})</div>
+        <div class="ns-pods">`
+      svcs.forEach(s => {
+        html += `
+          <div class="pod-item">
+            <div class="item-title">${escapeHtml(s.name)}</div>
+            <div class="item-meta">${escapeHtml(s.type)} · ${escapeHtml(s.clusterIP)} · ${escapeHtml(s.ports)}</div>
+          </div>`
+      })
+      html += `</div></div>`
+      container.innerHTML += html
+    })
+  }
+
+  if (cluster.nodes?.length) {
+    container.innerHTML += `<p style="margin-top:8px"><strong>Nodes (${cluster.nodes.length}):</strong></p>`
+    cluster.nodes.forEach(n => {
+      const parts = [escapeHtml(n.name), formatCpu(n.cpu), formatMemory(n.memory)]
+      n.pressure.forEach(p => parts.push(`<span class="tag red">${escapeHtml(p)}</span>`))
+      container.innerHTML += `
+        <div class="pod-item">
+          <div class="item-meta">${parts.join(' · ')}</div>
+        </div>`
     })
   }
 
@@ -111,7 +163,7 @@ function renderCluster(container, cluster) {
     })
   }
 
-  if (!cluster.pods?.length && !cluster.deployments?.length) {
+  if (!cluster.pods?.length && !cluster.deployments?.length && !cluster.services?.length && !cluster.nodes?.length) {
     container.innerHTML += `<p class="empty-state" style="margin-top:4px">No resources found</p>`
   }
 }
