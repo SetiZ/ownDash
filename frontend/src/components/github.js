@@ -1,6 +1,12 @@
 import { fetchJson } from '../api/client.js'
 import { escapeHtml } from '../utils/escape.js'
 
+function formatTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+}
+
 export async function renderGitHub(container, statusEl) {
   try {
     const data = await fetchJson('/github')
@@ -15,7 +21,7 @@ export async function renderGitHub(container, statusEl) {
             <div class="item-title">${escapeHtml(pr.title)}</div>
             <div class="item-meta">
               <span class="tag ${stateTag(pr.state)}">${escapeHtml(pr.state)}</span>
-              ${escapeHtml(pr.repo)} · ${escapeHtml(pr.author)}
+              ${escapeHtml(pr.repo)} · ${escapeHtml(pr.author)} · <span class="muted">${formatTime(pr.updatedAt)}</span>
             </div>
           </div>`
       })
@@ -30,7 +36,7 @@ export async function renderGitHub(container, statusEl) {
             <div class="item-title">${escapeHtml(wf.name)}</div>
             <div class="item-meta">
               <span class="tag ${cls}">${escapeHtml(wf.conclusion || 'running')}</span>
-              ${escapeHtml(wf.branch)} · ${escapeHtml(wf.actor)}
+              ${escapeHtml(wf.branch)} · ${escapeHtml(wf.actor)} · <span class="muted">${formatTime(wf.updatedAt)}</span>
             </div>
           </div>`
       })

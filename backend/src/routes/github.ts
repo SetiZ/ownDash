@@ -40,6 +40,7 @@ app.get('/', async (c) => {
           branch: run.head_branch,
           conclusion: run.conclusion,
           actor: run.actor?.login || 'unknown',
+          updatedAt: run.updated_at,
         }))
       })
     )
@@ -52,6 +53,7 @@ app.get('/', async (c) => {
         repo: pr.repository_url?.split('/').slice(-2).join('/') || 'unknown',
         author: pr.user?.login || 'unknown',
         url: pr.html_url,
+        updatedAt: pr.updated_at,
       })),
       workflows: wfRuns.flat().slice(0, 8),
     })
