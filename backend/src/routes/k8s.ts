@@ -216,7 +216,8 @@ function queryCluster(context: string, nsFilter: string[]): ClusterData & { stat
   const svcRaw = run('kubectl', [...ctx, 'get', 'services', '--all-namespaces', '-o', 'json'])
   const eventsRaw = run('kubectl', [...ctx, 'get', 'events', '--all-namespaces', '-o', 'json', '--field-selector', 'type=Warning'])
   const nodesRaw = run('kubectl', [...ctx, 'get', 'nodes', '-o', 'json'])
-  const topRaw = run('kubectl', [...ctx, 'top', 'nodes', '-o', 'json'])
+  let topRaw: string | null = '{"items":[]}'
+  try { topRaw = run('kubectl', [...ctx, 'top', 'nodes', '-o', 'json']) } catch {}
 
   const podList = parseJson<K8sList<K8sPod>>(podJson, { items: [] })
   const depList = parseJson<K8sList<K8sDeployment>>(depRaw, { items: [] })
