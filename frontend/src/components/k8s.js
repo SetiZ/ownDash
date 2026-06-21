@@ -21,8 +21,8 @@ function imageHtml(imageStr) {
 }
 
 function formatCpu(cpu) {
-  if (cpu.endsWith('m')) return (parseInt(cpu) / 1000).toFixed(1) + ' CPU'
-  return parseInt(cpu) + ' CPU'
+  if (cpu.endsWith('m')) return (parseInt(cpu, 10) / 1000).toFixed(1) + ' CPU'
+  return parseInt(cpu, 10) + ' CPU'
 }
 
 function formatMemory(mem) {
@@ -154,7 +154,7 @@ function renderCluster(container, cluster) {
 
   if (cluster.events?.length) {
     container.innerHTML += `<p style="margin-top:8px"><strong>Recent warnings:</strong></p>`
-    cluster.events.slice(0, 5).forEach(ev => {
+    cluster.events.forEach(ev => {
       container.innerHTML += `
         <div class="pr-item">
           <div class="item-title">${escapeHtml(ev.message)}</div>

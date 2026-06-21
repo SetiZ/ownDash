@@ -3,6 +3,113 @@ import { execFileSync } from 'child_process'
 
 const app = new Hono()
 
+// ── K8s API types ──────────────────────────────────────────────────────────
+
+interface K8sMeta {
+  name?: string
+  namespace?: string
+  uid?: string
+  creationTimestamp?: string
+  ownerReferences?: { kind: string; uid: string }[]
+}
+
+interface K8sContainer {
+  image: string
+}
+
+interface K8sPodStatus {
+  phase?: string
+  containerStatuses?: { restartCount: number }[]
+}
+
+interface K8sPod {
+  metadata?: K8sMeta
+  status?: K8sPodStatus
+}
+
+interface K8sDeploymentSpec {
+  replicas?: number
+  template?: { spec?: { containers?: K8sContainer[] } }
+}
+
+interface K8sDeploymentStatus {
+  readyReplicas?: number
+  availableReplicas?: number
+  updatedReplicas?: number
+  conditions?: { type: string; status: string; reason: string }[]
+}
+
+interface K8sDeployment {
+  metadata?: K8sMeta
+  spec?: K8sDeploymentSpec
+  status?: K8sDeploymentStatus
+}
+
+interface K8sReplicaSet {
+  metadata?: K8sMeta
+}
+
+interface K8sServiceSpec {
+  type?: string
+  clusterIP?: string
+  ports?: { port: number; protocol: string }[]
+}
+
+interface K8sService {
+  metadata?: K8sMeta
+  spec?: K8sServiceSpec
+}
+
+interface K8sNodeStatus {
+  capacity?: { cpu?: string; memory?: string }
+  conditions?: { type: string; status: string }[]
+}
+
+interface K8sNode {
+  metadata?: K8sMeta
+  status?: K8sNodeStatus
+}
+
+interface K8sEvent {
+  metadata?: K8sMeta
+  message?: string
+  reason?: string
+  count?: number
+}
+
+interface K8sList<T> {
+  items?: T[]
+}
+
+interface ClusterData {
+  name: string
+  podCount: number
+  unhealthyCount: number
+  pods: { name: string; namespace: string; status: string; restarts: number }[]
+  deployments: {
+    name: string
+    namespace: string
+    desired: number
+    ready: number
+    available: number
+    upToDate: number
+    image: string
+    lastUpdated: string | null
+    stalled: boolean
+  }[]
+  services: {
+    name: string
+    namespace: string
+    type: string
+    clusterIP: string
+    ports: string
+  }[]
+  events: { message: string; namespace: string; count: number }[]
+  nodes: { name: string; cpu: string; memory: string; pressure: string[] }[]
+}
+
+// ── Route ──────────────────────────────────────────────────────────────────
+
 app.get('/', async (c) => {
   try {
     const contexts = parseContexts(process.env.K8S_CONTEXTS)
@@ -20,6 +127,8 @@ app.get('/', async (c) => {
   }
 })
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 function parseContexts(raw: string | undefined): string[] {
   if (!raw) return ['']
   return raw.split(',').map(s => s.trim()).filter(Boolean)
@@ -30,11 +139,11 @@ function parseNamespaces(raw: string | undefined): string[] {
   return raw.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-function buildRolloutMap(rsList: any): Map<string, string> {
+function buildRolloutMap(rsList: K8sList<K8sReplicaSet>): Map<string, string> {
   const map = new Map<string, string>()
   for (const rs of rsList.items || []) {
     const owner = (rs.metadata?.ownerReferences || []).find(
-      (ref: any) => ref.kind === 'Deployment'
+      ref => ref.kind === 'Deployment'
     )
     if (!owner) continue
     const ts = rs.metadata?.creationTimestamp
@@ -47,15 +156,20 @@ function buildRolloutMap(rsList: any): Map<string, string> {
   return map
 }
 
-function queryCluster(context: string, nsFilter: string[]) {
+function sumRestarts(statuses: { restartCount: number }[] | undefined): number {
+  if (!statuses) return 0
+  return statuses.reduce((sum, s) => sum + (s.restartCount || 0), 0)
+}
+
+function queryCluster(context: string, nsFilter: string[]): ClusterData & { status: string } {
   const filterNs = nsFilter.length > 0
     ? (ns: string) => nsFilter.includes(ns)
     : () => true
-  const ctx = context ? ['--context', context] : ([] as string[])
+  const ctx = context ? ['--context', context] : [] as string[]
 
   const podJson = run('kubectl', [...ctx, 'get', 'pods', '--all-namespaces', '-o', 'json'])
   if (!podJson) {
-    return { name: context || 'default', status: 'error', podCount: 0, unhealthyCount: 0, pods: [], events: [], nodeCount: 0 }
+    return { name: context || 'default', status: 'error', podCount: 0, unhealthyCount: 0, pods: [], deployments: [], services: [], events: [], nodes: [] }
   }
 
   const depRaw = run('kubectl', [...ctx, 'get', 'deployments', '--all-namespaces', '-o', 'json'])
@@ -64,71 +178,71 @@ function queryCluster(context: string, nsFilter: string[]) {
   const eventsRaw = run('kubectl', [...ctx, 'get', 'events', '--all-namespaces', '-o', 'json', '--field-selector', 'type=Warning'])
   const nodesRaw = run('kubectl', [...ctx, 'get', 'nodes', '-o', 'json'])
 
-  const podList = parseJson(podJson, { items: [] })
-  const depList = parseJson(depRaw, { items: [] })
-  const rsList = parseJson(rsRaw, { items: [] })
-  const svcList = parseJson(svcRaw, { items: [] })
-  const eventList = parseJson(eventsRaw, { items: [] })
-  const nodeList = parseJson(nodesRaw, { items: [] })
+  const podList = parseJson<K8sList<K8sPod>>(podJson, { items: [] })
+  const depList = parseJson<K8sList<K8sDeployment>>(depRaw, { items: [] })
+  const rsList = parseJson<K8sList<K8sReplicaSet>>(rsRaw, { items: [] })
+  const svcList = parseJson<K8sList<K8sService>>(svcRaw, { items: [] })
+  const eventList = parseJson<K8sList<K8sEvent>>(eventsRaw, { items: [] })
+  const nodeList = parseJson<K8sList<K8sNode>>(nodesRaw, { items: [] })
 
   const nonTerminal = (podList.items || []).filter(
-    (p: any) => p.status?.phase !== 'Succeeded' && p.status?.phase !== 'Failed'
+    p => p.status?.phase !== 'Succeeded' && p.status?.phase !== 'Failed'
   )
 
   const pods = nonTerminal
-    .map((p: any) => ({
+    .map(p => ({
       name: p.metadata?.name || 'unknown',
       namespace: p.metadata?.namespace || 'default',
       status: p.status?.phase || 'Unknown',
-      restarts: p.status?.containerStatuses?.[0]?.restartCount || 0,
+      restarts: sumRestarts(p.status?.containerStatuses),
     }))
-    .filter((p: any) => filterNs(p.namespace))
+    .filter(p => filterNs(p.namespace))
 
   const warnings = (eventList.items || [])
-    .map((e: any) => ({
+    .map(e => ({
       message: e.message || e.reason || 'unknown',
       namespace: e.metadata?.namespace || 'default',
       count: e.count || 1,
     }))
-    .filter((e: any) => filterNs(e.namespace))
+    .filter(e => filterNs(e.namespace))
     .slice(0, 5)
 
   const lastRollout = buildRolloutMap(rsList)
 
   const deployments = (depList.items || [])
-    .map((d: any) => {
+    .map(d => {
       const containers = d.spec?.template?.spec?.containers || []
       const stalled = (d.status?.conditions || []).some(
-        (c: any) => c.type === 'Progressing' && c.status === 'False' && c.reason === 'ProgressDeadlineExceeded'
+        c => c.type === 'Progressing' && c.status === 'False' && c.reason === 'ProgressDeadlineExceeded'
       )
       return {
         name: d.metadata?.name || 'unknown',
         namespace: d.metadata?.namespace || 'default',
-        desired: d.spec?.replicas || 0,
+        desired: d.spec?.replicas ?? 1,
         ready: d.status?.readyReplicas || 0,
         available: d.status?.availableReplicas || 0,
         upToDate: d.status?.updatedReplicas || 0,
-        image: containers.slice(0, 3).map((c: any) => c.image).join(', ') + (containers.length > 3 ? ', ...' : ''),
-        lastUpdated: lastRollout.get(d.metadata?.uid) || null,
+        image: containers.slice(0, 3).map(c => c.image).join(', ') + (containers.length > 3 ? ', ...' : ''),
+        lastUpdated: lastRollout.get(d.metadata?.uid || '') || null,
         stalled,
       }
     })
-    .filter((d: any) => filterNs(d.namespace))
+    .filter(d => filterNs(d.namespace))
 
   const services = (svcList.items || [])
-    .map((s: any) => ({
+    .map(s => ({
       name: s.metadata?.name || 'unknown',
       namespace: s.metadata?.namespace || 'default',
       type: s.spec?.type || 'ClusterIP',
       clusterIP: s.spec?.clusterIP || 'None',
-      ports: (s.spec?.ports || []).map((p: any) => `${p.port}/${p.protocol}`).join(', '),
+      ports: (s.spec?.ports || []).map(p => `${p.port}/${p.protocol}`).join(', '),
     }))
-    .filter((s: any) => filterNs(s.namespace))
+    .filter(s => filterNs(s.namespace))
 
-  const nodes = (nodeList.items || []).map((n: any) => {
+  const nodes = (nodeList.items || []).map(n => {
     const pressure = (n.status?.conditions || [])
-      .filter((c: any) => c.status === 'True' && ['DiskPressure', 'MemoryPressure', 'PIDPressure'].includes(c.type))
-      .map((c: any) => c.type)
+      .filter(c => c.status === 'True' && ['DiskPressure', 'MemoryPressure', 'PIDPressure'].includes(c.type))
+      .map(c => c.type)
     return {
       name: n.metadata?.name || 'unknown',
       cpu: n.status?.capacity?.cpu || 'unknown',
@@ -137,10 +251,11 @@ function queryCluster(context: string, nsFilter: string[]) {
     }
   })
 
-  const unhealthy = pods.filter((p: any) => p.status !== 'Running').length
+  const unhealthy = pods.filter(p => p.status !== 'Running').length
 
   return {
     name: context || 'default',
+    status: unhealthy > 0 ? 'warning' : 'ok',
     podCount: pods.length,
     unhealthyCount: unhealthy,
     pods: pods.slice(0, 100),
@@ -159,9 +274,9 @@ function run(cmd: string, args: string[]): string | null {
   }
 }
 
-function parseJson(raw: string | null, fallback: any) {
+function parseJson<T>(raw: string | null, fallback: T): T {
   if (!raw) return fallback
-  try { return JSON.parse(raw) } catch { return fallback }
+  try { return JSON.parse(raw) as T } catch { return fallback }
 }
 
 export default app
