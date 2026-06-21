@@ -35,10 +35,10 @@ export async function renderGitHub(container, statusEl) {
         container.innerHTML += `
           <div class="pr-item">
             <div class="item-title">${escapeHtml(wf.name)}</div>
-            ${wf.commitMessage ? `<div class="item-meta muted">${escapeHtml(wf.commitMessage)}</div>` : ''}
             <div class="item-meta">
               <span class="tag ${cls}">${escapeHtml(wf.conclusion || 'running')}</span>
               ${escapeHtml(wf.branch)}
+              ${wf.commitMessage ? ` · ${escapeHtml(wf.commitMessage)}` : ''}
             </div>
             <div class="item-meta">${escapeHtml(wf.actor)} · <span class="muted">${formatTime(wf.updatedAt)}</span></div>
           </div>`
