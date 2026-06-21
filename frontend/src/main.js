@@ -16,15 +16,15 @@ function updateTimestamp() {
 async function refreshAll() {
   await Promise.allSettled([
     renderGitHub(
-      document.getElementById('github-content'),
+      document.getElementById('tab-github'),
       document.getElementById('status-github')
     ),
     renderK8s(
-      document.getElementById('k8s-content'),
+      document.getElementById('tab-k8s'),
       document.getElementById('status-k8s')
     ),
     renderPlane(
-      document.getElementById('plane-content'),
+      document.getElementById('tab-plane'),
       document.getElementById('status-plane')
     ),
     renderWeather(document.getElementById('weather-content')),
@@ -36,9 +36,16 @@ async function refreshAll() {
 refreshAll()
 setInterval(refreshAll, 60_000)
 
+document.getElementById('data-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn')
+  if (!btn) return
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'))
+  btn.classList.add('active')
+  document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
+})
+
 document.querySelector('main').addEventListener('click', e => {
-  const h2 = e.target.closest('.collapsible > h2')
-  if (h2) h2.closest('.collapsible').classList.toggle('collapsed')
   const ns = e.target.closest('.ns-header')
   if (ns) ns.closest('.ns').classList.toggle('collapsed')
 })
