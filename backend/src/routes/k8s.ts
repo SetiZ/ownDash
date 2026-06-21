@@ -40,7 +40,7 @@ function buildRolloutMap(rsList: any): Map<string, string> {
     const ts = rs.metadata?.creationTimestamp
     if (!ts) continue
     const existing = map.get(owner.uid)
-    if (!existing || ts > existing) {
+    if (!existing || new Date(ts) > new Date(existing)) {
       map.set(owner.uid, ts)
     }
   }
@@ -83,13 +83,13 @@ function queryCluster(context: string, nsFilter: string[]) {
     .filter((p: any) => filterNs(p.namespace))
 
   const warnings = (eventList.items || [])
-    .slice(0, 5)
     .map((e: any) => ({
       message: e.message || e.reason || 'unknown',
       namespace: e.metadata?.namespace || 'default',
       count: e.count || 1,
     }))
     .filter((e: any) => filterNs(e.namespace))
+    .slice(0, 5)
 
   const lastRollout = buildRolloutMap(rsList)
 
