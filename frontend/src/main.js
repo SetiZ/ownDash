@@ -13,36 +13,37 @@ function updateTimestamp() {
     new Date().toLocaleTimeString('en', { hour12: false })
 }
 
-async function refreshAll() {
-  await Promise.allSettled([
-    renderGitHub(
-      document.getElementById('tab-github'),
-      document.getElementById('status-github')
-    ),
-    renderK8s(
-      document.getElementById('tab-k8s'),
-      document.getElementById('status-k8s')
-    ),
-    renderPlane(
-      document.getElementById('tab-plane'),
-      document.getElementById('status-plane')
-    ),
-    renderWeather(document.getElementById('weather-content')),
-  ])
-  renderTimezones(document.getElementById('timezone-content'))
-  updateTimestamp()
+renderWeather(document.getElementById('weather-content'))
+renderTimezones(document.getElementById('timezone-content'))
+updateTimestamp()
+
+function loadTab(name) {
+  const statusEl = document.getElementById('status-' + name)
+  const contentEl = document.getElementById('tab-' + name)
+  const fns = { github: renderGitHub, k8s: renderK8s, plane: renderPlane }
+  fns[name](contentEl, statusEl)
 }
 
-refreshAll()
-setInterval(refreshAll, 60_000)
+function activateTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === name
+    b.classList.toggle('active', active)
+    b.setAttribute('aria-selected', active)
+  })
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-' + name)
+  })
+  localStorage.setItem('owndash-tab', name)
+  loadTab(name)
+}
+
+const savedTab = localStorage.getItem('owndash-tab') || 'github'
+activateTab(savedTab)
 
 document.getElementById('data-tabs').addEventListener('click', e => {
   const btn = e.target.closest('.tab-btn')
   if (!btn) return
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'))
-  btn.classList.add('active')
-  document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
+  activateTab(btn.dataset.tab)
 })
 
 document.querySelector('main').addEventListener('click', e => {
