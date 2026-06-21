@@ -7,9 +7,9 @@ function formatTime(iso) {
   return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
 }
 
-export async function renderGitHub(container, statusEl) {
+export async function renderGitHub(container, statusEl, { signal } = {}) {
   try {
-    const data = await fetchJson('/github')
+    const data = await fetchJson('/github', { signal })
     setStatus(statusEl, data.status)
     container.innerHTML = ''
 

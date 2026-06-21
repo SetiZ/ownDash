@@ -69,9 +69,9 @@ function formatResourceLine(req, lim) {
   return parts.join('  ')
 }
 
-export async function renderK8s(container, statusEl) {
+export async function renderK8s(container, statusEl, { signal } = {}) {
   try {
-    const data = await fetchJson('/k8s')
+    const data = await fetchJson('/k8s', { signal })
     container.innerHTML = ''
 
     if (data.clusters?.length) {
