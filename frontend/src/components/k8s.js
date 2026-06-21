@@ -83,7 +83,7 @@ function renderCluster(container, cluster) {
         <div class="ns-header">${escapeHtml(ns)} (${deps.length})</div>
         <div class="ns-pods">`
       deps.forEach(d => {
-        const updated = d.lastUpdated ? new Date(d.lastUpdated).toLocaleString(undefined, { timeZone: 'UTC', timeZoneName: 'short' }) : ''
+        const updated = d.lastUpdated ? new Date(d.lastUpdated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : ''
         const parts = [
           `<span class="tag ${d.ready < d.desired ? 'yellow' : 'green'}">${d.ready}/${d.desired} ready</span>`,
         ]
