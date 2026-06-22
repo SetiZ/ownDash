@@ -261,3 +261,69 @@ header h1 {
 .tab-content.active {
   display: block;
 }
+
+.project-heading {
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 12px 0 4px;
+  margin-top: 8px;
+  border-top: 1px solid var(--surface-2);
+  color: var(--text);
+}
+
+.project-heading:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
+.issue-card {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--surface-2);
+}
+
+.issue-card:last-child {
+  border-bottom: none;
+}
+
+.issue-id {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.issue-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.state-tag {
+  font-size: 0.72rem;
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--label-color, #888);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.label-tag {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--label-color, #888) 20%, transparent);
+  color: var(--label-color, #888);
+  white-space: nowrap;
+}
+
+.estimate-tag {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.assignee {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
